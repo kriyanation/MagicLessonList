@@ -1,9 +1,8 @@
-import configparser
+
 import os
 import sqlite3
 import traceback
-from pathlib import Path
-from tkinter import messagebox
+
 
 file_root = os.path.abspath(os.path.join(os.getcwd(),".."))
 db = file_root+os.path.sep+"MagicRoom.db"
@@ -22,6 +21,27 @@ def get_Lessons():
     connection.close()
     return list_lessons
 
+def delete_lesson(lesson_id):
+    try:
+        connection = sqlite3.connect(db)
+        cur = connection.cursor()
+        sql = ("delete from Magic_Science_Lessons where Lesson_ID = ?")
+        cur.execute(sql, (lesson_id,))
+        connection.commit()
+        cur = connection.cursor()
+        sql = ("select seq from sqlite_sequence where name = 'Magic_Science_Lessons'")
+        cur.execute(sql)
+        row = cur.fetchone()
+        sql1 = ("update sqlite_sequence set seq=? where name='Magic_Science_Lessons'")
+        sequence = row[0] -1
+        cur.execute(sql1,(sequence,))
+        connection.commit()
+        connection.close()
+
+        return 0
+    except sqlite3.OperationalError:
+        traceback.print_exc()
+        return 1
 
 def get_lessons_for_share(lesson_id):
     connection = sqlite3.connect(db)

@@ -1,5 +1,11 @@
+import shutil
 import tkinter as tk
-from tkinter import ttk
+import traceback
+from threading import Thread
+from tkinter import ttk, messagebox
+
+import requests
+
 import data_capture_lessons
 import sharelesson
 
@@ -7,6 +13,7 @@ import sharelesson
 class MagicLessonList(tk.Toplevel):
     def __init__(self,parent,*args, **kwargs):
         super().__init__(parent,*args, **kwargs)
+
         s = ttk.Style(self)
         s.configure('TScrollbar', background="gray22", foreground="white")
         s.map('TScrollbar', background=[('active', '!disabled', 'gray22'), ('pressed', "white")],
@@ -30,74 +37,86 @@ class MagicLessonList(tk.Toplevel):
         self.lesson_view_label = ttk.Label(self, text="Lessons View",
                                       font=("Comic Sans", 14, 'bold'), background="gray22", foreground="white")
         self.scroll_frame = ttk.Frame(self)
+        self.data_display()
+
+    def data_display(self):
         self.headerlesson_id_label = ttk.Label(self.lesson_frame, text="ID", font=('helvetica', 16),
+                                               background='gray20',
+                                               foreground='aquamarine')
+        self.headerlessonlabel = ttk.Label(self.lesson_frame, text="Lesson Name", font=('helvetica', 16),
                                            background='gray20',
                                            foreground='aquamarine')
-        self.headerlessonlabel = ttk.Label(self.lesson_frame, text="Lesson Name", font=('helvetica', 16), background='gray20',
-                                         foreground='aquamarine')
         self.headerfactlabel = ttk.Label(self.lesson_frame, text="Lesson Terms", font=('helvetica', 16),
-                                          background='gray20', foreground='aquamarine')
+                                         background='gray20', foreground='aquamarine')
         self.headerstepslabel = ttk.Label(self.lesson_frame, text="Lesson Skills\n(first step)", font=('helvetica', 16),
-                                           background='gray20', foreground='aquamarine')
-        self.headersteps_numberlabel = ttk.Label(self.lesson_frame, text="Skill Steps", font=('helvetica', 16),
                                           background='gray20', foreground='aquamarine')
-        self.headersteps_sharelabel = ttk.Label(self.lesson_frame, text="Share Lesson", font=('helvetica', 16),
+        self.headersteps_numberlabel = ttk.Label(self.lesson_frame, text="Skill Steps", font=('helvetica', 16),
                                                  background='gray20', foreground='aquamarine')
+        self.headersteps_sharelabel = ttk.Label(self.lesson_frame, text="Share Lesson", font=('helvetica', 16),
+                                                background='gray20', foreground='aquamarine')
         self.headersteps_accesslabel = ttk.Label(self.lesson_frame, text="Share Access", font=('helvetica', 16),
                                                  background='gray20', foreground='aquamarine')
+        self.headersteps_deletelabel = ttk.Label(self.lesson_frame, text="Delete Lesson", font=('helvetica', 16),
+                                                 background='gray20', foreground='aquamarine')
 
-        self.headerlesson_id_label.grid(row=0, column=0,padx=20, pady=10,sticky=tk.W)
-        self.headerlessonlabel.grid(row=0, column=1 ,padx=20,pady=10,sticky=tk.W)
-        self.headerfactlabel.grid(row=0, column=2,padx=20,pady=10,sticky=tk.W)
-        self.headerstepslabel.grid(row=0, column=3, padx=20,pady=10,sticky=tk.W)
-        self.headersteps_numberlabel.grid(row=0, column=4,padx=20, pady=10,sticky=tk.W)
+        self.headerlesson_id_label.grid(row=0, column=0, padx=20, pady=10, sticky=tk.W)
+        self.headerlessonlabel.grid(row=0, column=1, padx=20, pady=10, sticky=tk.W)
+        self.headerfactlabel.grid(row=0, column=2, padx=20, pady=10, sticky=tk.W)
+        self.headerstepslabel.grid(row=0, column=3, padx=20, pady=10, sticky=tk.W)
+        self.headersteps_numberlabel.grid(row=0, column=4, padx=20, pady=10, sticky=tk.W)
         self.headersteps_sharelabel.grid(row=0, column=5, padx=20, pady=10, sticky=tk.W)
         self.headersteps_accesslabel.grid(row=0, column=6, padx=20, pady=10, sticky=tk.W)
+        self.headersteps_deletelabel.grid(row=0, column=7, padx=20, pady=10, sticky=tk.W)
+
+        self.import_button = ttk.Button(self, text="Import a Lesson", width=20,
+                                        command=self.import_lesson,
+                                        style="Firebrick.TButton")
+        self.import_button.grid(row=1, column=0, columnspan=8, pady=20)
+
         row_index = 1
         self.share_image = tk.PhotoImage(file="../images/share.png")
-
-
+        self.delete_image = tk.PhotoImage(file="../images/trash.png")
         self.lesson_list = data_capture_lessons.get_Lessons()
-
         for element in self.lesson_list:
-
             bgcolor = "gray20"
             self.dataidlabel = ttk.Label(self.lesson_frame, text=element[0], font=('helvetica', 12),
-                                           foreground='white', wraplength=200, background=bgcolor)
+                                         foreground='white', wraplength=200, background=bgcolor)
             self.datanamelabel = ttk.Label(self.lesson_frame, text=element[1], font=('helvetica', 12),
                                            foreground='white', wraplength=200, background=bgcolor)
-            self.datafactlabel = ttk.Label(self.lesson_frame, text=element[2]+'\n'+element[3]+'\n'+element[4], font=('helvetica', 12),
-                                         foreground='white', wraplength=300, background=bgcolor)
+            self.datafactlabel = ttk.Label(self.lesson_frame, text=element[2] + '\n' + element[3] + '\n' + element[4],
+                                           font=('helvetica', 12),
+                                           foreground='white', wraplength=300, background=bgcolor)
             self.datasteplabel = ttk.Label(self.lesson_frame,
                                            text=element[5],
                                            font=('helvetica', 12),
                                            foreground='white', wraplength=200, background=bgcolor)
             self.datastepnumbers = ttk.Label(self.lesson_frame,
-                                           text=str(element[6]),
-                                           font=('helvetica', 12),
-                                           foreground='white', wraplength=200, background=bgcolor)
+                                             text=str(element[6]),
+                                             font=('helvetica', 12),
+                                             foreground='white', wraplength=200, background=bgcolor)
             lesson_id = element[0]
             self.share_button = ttk.Button(self.lesson_frame, text="", image=self.share_image,
                                            style="dash.TButton", width=5,
                                            command=lambda c=lesson_id: self.launch_share(c))
+            self.delete_button = ttk.Button(self.lesson_frame, text="", image=self.delete_image,
+                                           style="dash.TButton", width=5,
+                                           command=lambda c=lesson_id: self.delete_lesson(c))
             text_access = self.get_access_text(lesson_id)
             self.access_label = ttk.Label(self.lesson_frame,
-                                             text=text_access,
-                                             font=('helvetica', 12),
-                                             foreground='white', wraplength=200, background=bgcolor)
+                                          text=text_access,
+                                          font=('helvetica', 12),
+                                          foreground='white', wraplength=200, background=bgcolor)
 
-            self.dataidlabel.grid(row=row_index,pady=20,column=0,padx=20,sticky=tk.W)
-            self.datanamelabel.grid(row=row_index,pady=20, column=1,padx=20,sticky=tk.W)
-            self.datafactlabel.grid(row=row_index,pady=20, column=2,padx=20,sticky=tk.W)
-            self.datasteplabel.grid(row=row_index,pady=20, column=3,padx=20,sticky=tk.W)
-            self.datastepnumbers.grid(row=row_index,pady=20, column=4,padx=20,sticky=tk.W)
-            self.share_button.grid(row=row_index,pady=20, column=5,padx=20,sticky=tk.W)
+            self.dataidlabel.grid(row=row_index, pady=20, column=0, padx=20, sticky=tk.W)
+            self.datanamelabel.grid(row=row_index, pady=20, column=1, padx=20, sticky=tk.W)
+            self.datafactlabel.grid(row=row_index, pady=20, column=2, padx=20, sticky=tk.W)
+            self.datasteplabel.grid(row=row_index, pady=20, column=3, padx=20, sticky=tk.W)
+            self.datastepnumbers.grid(row=row_index, pady=20, column=4, padx=20, sticky=tk.W)
+            self.share_button.grid(row=row_index, pady=20, column=5, padx=20, sticky=tk.W)
             self.access_label.grid(row=row_index, pady=20, column=6, padx=20, sticky=tk.W)
+            self.delete_button.grid(row=row_index, pady=20, column=7, padx=20, sticky=tk.W)
             row_index += 1
-        self.import_button = ttk.Button(self, text="Import a Lesson", width=20,
-                   command=self.import_lesson,
-                   style="Firebrick.TButton")
-        self.import_button.grid(row=1,column=0,columnspan=8,pady=20)
+
     def get_access_text(self,lesson_id):
         if data_capture_lessons.is_shared(lesson_id) == 1:
             class_id, User = data_capture_lessons.get_user_classid()
@@ -147,13 +166,31 @@ class MagicLessonList(tk.Toplevel):
                    command=lambda: self.get_lesson(user.get(), classid.get(), lessonid.get()),
                    style="Firebrick.TButton").pack()
     def get_lesson(self,user,classid,lessonid):
-        status = sharelesson.import_new_lesson(user,classid,lessonid)
+
+        status = sharelesson.import_new_lesson(user,classid,lessonid,self)
         if status == 'error':
             self.importstatusvar.set("Access information could be wrong, please try again")
         else:
             self.import_screen.destroy()
+            for widget in self.lesson_frame.winfo_children():
+                widget.destroy()
+            self.data_display()
     def l_function(self,event):
-       self.l_canvas.configure(scrollregion=self.l_canvas.bbox("all"),width=1380,height=750)
+       self.l_canvas.configure(scrollregion=self.l_canvas.bbox("all"),width=1450,height=750)
+
+    def delete_lesson(self,lesson_id):
+        try:
+            delete_data = data_capture_lessons.delete_lesson(lesson_id)
+            if delete_data == 0:
+                shutil.rmtree("../Lessons/Lesson" + str(lesson_id), True)
+
+        except:
+            traceback.print_exc()
+            print(" Error Deleting Lessons")
+            return 1
+        for widget in self.lesson_frame.winfo_children():
+            widget.destroy()
+        self.data_display()
 
     def launch_share(self,lesson_id):
 
@@ -190,12 +227,19 @@ class MagicLessonList(tk.Toplevel):
         if self.logintoken=="error":
             self.statusvar.set("Login Failed. Please try again or contact support")
         else:
+            messagebox.showinfo("Lesson Share","Sharing Triggered.\n The lesson list will refresh once sharing is complete \nwith the updated access details.")
             self.login_screen.destroy()
             self.post_lesson(self.logintoken,lesson_id)
+            for widget in self.lesson_frame.winfo_children():
+                widget.destroy()
+            self.data_display()
+
 
     def post_lesson(self,token,lesson_id):
         data = sharelesson.prepare_lesson_share(lesson_id)
         sharelesson.post_lesson(data,token,lesson_id)
+
+
 
 
 

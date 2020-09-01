@@ -1,7 +1,10 @@
+import configparser
 import os
 import shutil
 import traceback
 from base64 import b64encode
+from tkinter import messagebox
+
 import requests,json
 
 import data_capture_lessons
@@ -32,19 +35,19 @@ def prepare_lesson_share(lesson_id):
  data = '''{
      "lesson_id": "''' +str(rows[0])+'''",
      "class_id": "''' +str(class_id)+'''",
-     "user": "http://learning-room-285708.el.r.appspot.com/auth/users/'''+User+'''/",
+     "user": "http://learning-room-285708.el.r.appspot.com/auth/users/'''+str(User)+'''/",
      "title": "''' +rows[1]+'''",
      "title_image": "''' + convert_base_64(imageroot+rows[2]) + '''",
      "title_video": null,
-     "title_description": "''' +rows[4].replace("\n", "")+'''",
+     "title_description": "''' +rows[4].replace("\n", "~")+'''",
      "term1": "''' +rows[5]+'''",
-     "term1_description": "''' +rows[6].replace("\n", "")+'''",
+     "term1_description": "''' +rows[6].replace("\n", "~")+'''",
      "term1_image": "''' + convert_base_64(imageroot+rows[7]) + '''",
      "term2": "''' +rows[8]+'''",
-     "term2_description": "''' +rows[9].replace("\n", "")+'''",
+     "term2_description": "''' +rows[9].replace("\n", "~")+'''",
      "term2_image": "''' + convert_base_64(imageroot+rows[10]) + '''",
      "term3": "''' +rows[11]+'''",
-     "term3_description": "''' +rows[12].replace("\n", "")+'''",
+     "term3_description": "''' +rows[12].replace("\n", "~")+'''",
      "term3_image": "''' + convert_base_64(imageroot+rows[13]) + '''",
      "number_of_steps": "'''+str(rows[14])+'''",
      "step1_description": "'''+rows[15]+'''",
@@ -63,12 +66,15 @@ def prepare_lesson_share(lesson_id):
      "step7_image": "''' + convert_base_64(imageroot+rows[29]) + '''",
      "step8_description": "'''+rows[22]+'''",
      "step8_image": "''' + convert_base_64(imageroot+rows[30]) + '''",
-     "questions": "'''+rows[31].replace("\n", "")+'''"
+     "questions": "'''+rows[31].replace("\n", "~")+'''"
  }'''
  return data
 
 def get_token(username, password):
-   url = "http://learning-room-285708.el.r.appspot.com/auth/token/login/"
+   cn = configparser.ConfigParser()
+   cn.read("../urls.config")
+   url_root = cn['url']['share']
+   url = url_root+'auth/token/login'
    json_string = '''{
                       "username":"'''+username+'''",
                       "password":"'''+password+'''"
@@ -86,12 +92,15 @@ def post_lesson(data, token,lesson_id):
         json_object = json.loads(data)
         class_id, User = data_capture_lessons.get_user_classid()
         headers = {'Content-Type': 'application/json', 'Authorization': 'Token '+token}
-        url = "http://learning-room-285708.el.r.appspot.com/lesson/?username="+User+"&lesson_id="+json_object['lesson_id']+"&class_id="+json_object['class_id']
+        cn = configparser.ConfigParser()
+        cn.read("../urls.config")
+        url_root = cn['url']['share']
+        url = url_root+"lesson/?username="+str(User)+"&lesson_id="+json_object['lesson_id']+"&class_id="+json_object['class_id']
         response_get =  requests.get(url,headers=headers)
         json_object_get = json.loads(response_get.content)
         if response_get.status_code==200 and len(json_object_get) > 0:
             global_lesson_id = json_object_get[0]["global_lesson_id"]
-            url_put = "http://learning-room-285708.el.r.appspot.com/lesson/"+str(global_lesson_id)+"/?username="+User+"&lesson_id="+str(json_object['lesson_id'])+"&class_id="+str(json_object['class_id'])
+            url_put = url_root+"lesson/"+str(global_lesson_id)+"/?username="+str(User)+"&lesson_id="+str(json_object['lesson_id'])+"&class_id="+str(json_object['class_id'])
             response = requests.patch(url_put, headers=headers, data=data.encode('utf-8'))
         else:
             response = requests.post(url,headers=headers,data =data.encode('utf-8'))
@@ -99,19 +108,25 @@ def post_lesson(data, token,lesson_id):
             print(response.text)
         if response.status_code==201:
             data_capture_lessons.update_shared(lesson_id)
+        url_logout= url_root+"auth/token/logout/"
+        response_logout = requests.post(url_logout, headers=headers)
+        print(response_logout.content)
 
     except Exception:
         print(traceback.print_exc())
         print("exception")
 
 
-def import_new_lesson(user,classid,lessonid):
+def import_new_lesson(user,classid,lessonid,lessonwindow):
+    cn = configparser.ConfigParser()
+    cn.read("../urls.config")
+    url_root = cn['url']['share']
     headers = {'Content-Type': 'application/json'}
-    url = "http://learning-room-285708.el.r.appspot.com/lesson/?username=" + user + "&lesson_id=" + lessonid + "&class_id=" + classid
+    url = url_root+"lesson/?username=" + user + "&lesson_id=" + lessonid + "&class_id=" + classid
     response_get = requests.get(url, headers=headers)
     response_object_get = json.loads(response_get.content)
     if response_get.status_code == 200 and len(response_object_get) > 0:
-
+        messagebox.showinfo("Lesson Import","Import triggered\n The screen will close and refresh once import is completed",parent=lessonwindow)
         json_object = response_object_get[0]
         status = update_lesson_details(json_object)
         if status == "error":
@@ -162,6 +177,11 @@ def update_lesson_details(json_object):
     step8_image_file = json_object["step8_image"]
     if step8_image_file is not None:
         step8_filename = constructfilename(step8_image_file,"step8")
+    json_object["title_description"] = json_object["title_description"].replace("~", "\n")
+    json_object["term1_description"] = json_object["term1_description"].replace("~", "\n")
+    json_object["term2_description"] = json_object["term2_description"].replace("~", "\n")
+    json_object["term3_description"] = json_object["term3_description"].replace("~", "\n")
+    json_object["questions"] = json_object["questions"].replace("~", "\n")
 
     query_parameters = [json_object["title"],title_filename,json_object["title_video"],json_object["title_description"],
                         json_object["term1"],json_object["term1_description"],term1_filename,json_object["term2"],json_object["term2_description"],term2_filename,
