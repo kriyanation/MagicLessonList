@@ -29,11 +29,11 @@ def delete_lesson(lesson_id):
         cur.execute(sql, (lesson_id,))
         connection.commit()
         cur = connection.cursor()
-        sql = ("select seq from sqlite_sequence where name = 'Magic_Science_Lessons'")
+        sql = ("SELECT Lesson_ID FROM Magic_Science_Lessons ORDER BY Lesson_ID Desc Limit 1")
         cur.execute(sql)
         row = cur.fetchone()
         sql1 = ("update sqlite_sequence set seq=? where name='Magic_Science_Lessons'")
-        sequence = row[0] -1
+        sequence = row[0]
         cur.execute(sql1,(sequence,))
         connection.commit()
         connection.close()

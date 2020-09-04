@@ -40,23 +40,23 @@ class MagicLessonList(tk.Toplevel):
         self.data_display()
 
     def data_display(self):
-        self.headerlesson_id_label = ttk.Label(self.lesson_frame, text="ID", font=('helvetica', 16),
+        self.headerlesson_id_label = ttk.Label(self.lesson_frame, text="ID", font=('helvetica', 14),
                                                background='gray20',
                                                foreground='aquamarine')
-        self.headerlessonlabel = ttk.Label(self.lesson_frame, text="Lesson Name", font=('helvetica', 16),
+        self.headerlessonlabel = ttk.Label(self.lesson_frame, text="Lesson Name", font=('helvetica', 14),
                                            background='gray20',
                                            foreground='aquamarine')
-        self.headerfactlabel = ttk.Label(self.lesson_frame, text="Lesson Terms", font=('helvetica', 16),
+        self.headerfactlabel = ttk.Label(self.lesson_frame, text="Lesson Terms", font=('helvetica', 14),
                                          background='gray20', foreground='aquamarine')
-        self.headerstepslabel = ttk.Label(self.lesson_frame, text="Lesson Skills\n(first step)", font=('helvetica', 16),
+        self.headerstepslabel = ttk.Label(self.lesson_frame, text="Lesson Skills\n(first step)", font=('helvetica', 14),
                                           background='gray20', foreground='aquamarine')
-        self.headersteps_numberlabel = ttk.Label(self.lesson_frame, text="Skill Steps", font=('helvetica', 16),
+        self.headersteps_numberlabel = ttk.Label(self.lesson_frame, text="Skill Steps", font=('helvetica', 14),
                                                  background='gray20', foreground='aquamarine')
-        self.headersteps_sharelabel = ttk.Label(self.lesson_frame, text="Share Lesson", font=('helvetica', 16),
+        self.headersteps_sharelabel = ttk.Label(self.lesson_frame, text="Share Lesson", font=('helvetica', 14),
                                                 background='gray20', foreground='aquamarine')
-        self.headersteps_accesslabel = ttk.Label(self.lesson_frame, text="Share Access", font=('helvetica', 16),
+        self.headersteps_accesslabel = ttk.Label(self.lesson_frame, text="Share Access", font=('helvetica', 14),
                                                  background='gray20', foreground='aquamarine')
-        self.headersteps_deletelabel = ttk.Label(self.lesson_frame, text="Delete Lesson", font=('helvetica', 16),
+        self.headersteps_deletelabel = ttk.Label(self.lesson_frame, text="Delete Lesson", font=('helvetica', 14),
                                                  background='gray20', foreground='aquamarine')
 
         self.headerlesson_id_label.grid(row=0, column=0, padx=20, pady=10, sticky=tk.W)
@@ -72,6 +72,12 @@ class MagicLessonList(tk.Toplevel):
                                         command=self.import_lesson,
                                         style="Firebrick.TButton")
         self.import_button.grid(row=1, column=0, columnspan=8, pady=20)
+        self.share_condition = ttk.Label(self, text="Shared Lessons will be available for access for a "
+                                                                 "period of 15 days. Students or Teachers can download in their devices and use it for "
+                                                                 "as long as they need.\nFor sharing of lessons please ensure each image size is less than or equal to 500KB. And images are of types png,jpg,gif formats.\n"
+                                                    "The naming of the images should be of the form <name>.png or <name>.jpg or <name>.gif", font=('helvetica', 9),
+                                                 background='gray20', foreground='aquamarine')
+        self.share_condition.grid(row=2,column=0,columnspan=8,pady=10)
 
         row_index = 1
         self.share_image = tk.PhotoImage(file="../images/share.png")
@@ -176,7 +182,7 @@ class MagicLessonList(tk.Toplevel):
                 widget.destroy()
             self.data_display()
     def l_function(self,event):
-       self.l_canvas.configure(scrollregion=self.l_canvas.bbox("all"),width=1450,height=750)
+       self.l_canvas.configure(scrollregion=self.l_canvas.bbox("all"),width=1650,height=750)
 
     def delete_lesson(self,lesson_id):
         try:
@@ -227,7 +233,7 @@ class MagicLessonList(tk.Toplevel):
         if self.logintoken=="error":
             self.statusvar.set("Login Failed. Please try again or contact support")
         else:
-            messagebox.showinfo("Lesson Share","Sharing Triggered.\n The lesson list will refresh once sharing is complete \nwith the updated access details.")
+            messagebox.showinfo("Lesson Share","Sharing Triggered.\n The lesson list will refresh once sharing is complete \nwith the updated access details.",parent=self)
             self.login_screen.destroy()
             self.post_lesson(self.logintoken,lesson_id)
             for widget in self.lesson_frame.winfo_children():
@@ -237,7 +243,7 @@ class MagicLessonList(tk.Toplevel):
 
     def post_lesson(self,token,lesson_id):
         data = sharelesson.prepare_lesson_share(lesson_id)
-        sharelesson.post_lesson(data,token,lesson_id)
+        sharelesson.post_lesson(data,token,lesson_id,self)
 
 
 
